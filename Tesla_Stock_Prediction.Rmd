@@ -1,0 +1,116 @@
+---
+title: "TESLA Stock Price Analysis"
+author: "Anagha"
+date: "2024-01-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(tidyverse)
+library(zoo)
+```
+
+## Load Tesla data from csv file, and convert the date column into date format
+```{r}
+tesla_data <- read.csv("D:/Anagha/Projects/Tesla/tsla.csv")
+tesla_data$Date <- as.Date(tesla_data$Date)
+
+```
+
+
+## Basic trend Analysis using Closing prices of stock data
+
+```{r}
+ggplot(tesla_data, aes(x = Date)) +
+  geom_line(aes(y = Close), color = "blue") +
+labs(
+    title = "Tesla Stock Price Trend Analysis",
+    x = "Date",
+    y = "Stock Price (USD)"
+  ) +
+  theme_minimal()
+
+```
+
+## Find Simple Moving Averages for 30, 100 and 200 days
+```{r}
+tesla_data <- tesla_data %>%
+  mutate(SMA_30 = rollmean(Close, k = 30, fill = NA),
+         SMA_100 = rollmean(Close, k = 100, fill = NA),
+         SMA_200 = rollmean(Close, k = 200, fill = NA))
+```
+
+
+## Plot moving averages along with closing prices
+```{r}
+
+# Create breaks and labels for x-axis
+breaks <- seq(as.Date("2021-01-01"), as.Date("2024-01-01"), by = "4 months")
+labels <- format(breaks, "%b %Y")
+
+ggplot(data = tesla_data, aes(x = Date)) +
+  geom_line(aes(y = Close), color = "blue") +
+  geom_line(aes(y = SMA_20), color = "red", linetype = "solid") +
+  geom_line(aes(y = SMA_50), color = "green", linetype = "solid") +
+  geom_line(aes(y = SMA_100), color = "orange", linetype = "solid") +
+  labs(title = "Tesla Stock Price with Moving Averages (30, 100, and 200 days)",
+       x = "Date",
+       y = "Stock Price (USD)") +
+  theme_minimal()
+```
+
+
+
+## Calculate rolling standard deviation for 100 day and perform Volatility Analysis
+
+```{r}
+tesla_data <- tesla_data %>%
+  mutate(Volatility_20 = rollapply(Close, width = 20, FUN = sd, fill = NA))
+
+ggplot(data = tesla_data, aes(x = Date)) +
+  geom_line(aes(y = Volatility_100, color = "100-Day"), linetype = "solid") +
+  labs(title = "Tesla Stock Volatility Analysis (100 days)",
+       x = "Date",
+       y = "Volatility",
+       color = "Period") +
+  theme_minimal()
+```
+
+
+## Perform Seasonal Trend Analysis by calculating monthly average prices.
+
+```{r}
+# Calculate average stock price for each month
+monthly_avg <- tesla_data %>%
+  group_by(Month) %>%
+  summarize(Avg_Price = mean(Close))
+
+
+
+# Plot seasonal trend using scatter plot
+ggplot(monthly_avg, aes(x = factor(Month), y = Avg_Price)) +
+  geom_point(color = "blue", size = 3) +
+    geom_smooth(method = "lm", formula = y ~ x, se = FALSE, color = "red", linetype = "dashed") +  # Add a linear trendline
+  labs(title = "Seasonal Trend of Tesla Stock Price by Month",
+       x = "Month",
+       y = "Average Stock Price (USD)") +
+  scale_x_discrete(labels = month.abb) +  # Show month abbreviations on x-axis
+  theme_minimal()
+```
+
+
+
+
+
